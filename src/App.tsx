@@ -115,11 +115,13 @@ const TopBanner = () => (
 const Header = ({ 
   cartCount, 
   onCartClick,
-  onStoryClick
+  onStoryClick,
+  onSearchClick
 }: { 
   cartCount: number; 
   onCartClick: () => void;
   onStoryClick: () => void;
+  onSearchClick: () => void;
 }) => (
   <header className="sticky top-0 z-40 bg-cream/80 backdrop-blur-md border-b border-offblack/10">
     <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
@@ -134,7 +136,10 @@ const Header = ({
       </div>
 
       <div className="flex items-center gap-4 sm:gap-6">
-        <button className="hover:text-terracotta transition-colors hidden sm:block">
+        <button 
+          onClick={onSearchClick}
+          className="hover:text-terracotta transition-colors hidden sm:block"
+        >
           <Search size={18} strokeWidth={1.5} />
         </button>
         <button 
@@ -457,6 +462,69 @@ const StoryModal = ({
   </AnimatePresence>
 );
 
+const SearchOverlay = ({
+  isOpen,
+  onClose,
+  searchQuery,
+  onSearchChange
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  searchQuery: string;
+  onSearchChange: (query: string) => void;
+}) => (
+  <AnimatePresence>
+    {isOpen && (
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -20 }}
+        className="fixed inset-0 z-[120] bg-cream p-10 flex flex-col"
+      >
+        <div className="flex justify-end mb-20">
+          <button 
+            onClick={onClose}
+            className="w-12 h-12 flex items-center justify-center hover:bg-offblack/5 rounded-full transition-colors"
+          >
+            <X size={32} strokeWidth={1} />
+          </button>
+        </div>
+        
+        <div className="max-w-4xl mx-auto w-full text-center">
+          <span className="text-[10px] uppercase tracking-[0.4em] font-bold text-offblack/30 mb-10 block">Search our collection</span>
+          <div className="relative">
+            <input
+              autoFocus
+              type="text"
+              value={searchQuery}
+              onChange={(e) => onSearchChange(e.target.value)}
+              placeholder="Start typing..."
+              className="w-full bg-transparent text-4xl sm:text-6xl font-serif italic text-offblack outline-none border-b-2 border-offblack/10 pb-6 focus:border-terracotta transition-colors placeholder:text-offblack/10"
+            />
+            {searchQuery && (
+              <button 
+                onClick={() => onSearchChange('')}
+                className="absolute right-0 bottom-8 text-offblack/40 hover:text-offblack"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+          
+          <div className="mt-12 flex items-center justify-center gap-10">
+            <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-offblack/20">Popular searches:</span>
+            <div className="flex gap-6 text-[10px] uppercase tracking-[0.2em] font-bold text-offblack/60">
+              <button onClick={() => onSearchChange('Ceramics')} className="hover:text-terracotta transition-colors">Ceramics</button>
+              <button onClick={() => onSearchChange('Furniture')} className="hover:text-terracotta transition-colors">Furniture</button>
+              <button onClick={() => onSearchChange('Oak')} className="hover:text-terracotta transition-colors">Oak</button>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    )}
+  </AnimatePresence>
+);
+
 const CartSidebar = ({ 
   isOpen, 
   onClose, 
@@ -584,6 +652,8 @@ const CartSidebar = ({
 
 export default function App() {
   const [cartOpen, setCartOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedStory, setSelectedStory] = useState<Story | null>(null);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   
@@ -619,6 +689,11 @@ export default function App() {
     setSelectedStory(STORIES[nextIndex]);
   };
 
+  const filteredProducts = PRODUCTS.filter(p => 
+    p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    p.category.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <div className="min-h-screen flex flex-col bg-cream font-sans selection:bg-terracotta selection:text-white">
       <TopBanner />
@@ -626,6 +701,7 @@ export default function App() {
         cartCount={cartItems.reduce((sum, i) => sum + i.quantity, 0)} 
         onCartClick={() => setCartOpen(true)} 
         onStoryClick={() => setSelectedStory(STORIES[0])}
+        onSearchClick={() => setSearchOpen(true)}
       />
       
       <main className="flex-1">
@@ -641,27 +717,51 @@ export default function App() {
               transition={{ duration: 1 }}
             >
               <span className="text-[10px] uppercase tracking-[0.5em] font-bold text-terracotta mb-6 block">Current Curations</span>
-              <h2 className="text-4xl sm:text-6xl md:text-8xl font-serif italic tracking-tighter text-offblack">The Spring Edit.</h2>
+              <h2 className="text-4xl sm:text-6xl md:text-8xl font-serif italic tracking-tighter text-offblack">
+                {searchQuery ? `Results for "${searchQuery}"` : "The Spring Edit."}
+              </h2>
             </motion.div>
-            <motion.button 
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true }}
-              className="text-[10px] uppercase tracking-[0.4em] font-bold border-b-2 border-offblack pb-2 hover:text-terracotta hover:border-terracotta transition-all"
-            >
-              Browse All
-            </motion.button>
+            {searchQuery && (
+              <button 
+                onClick={() => setSearchQuery('')}
+                className="text-[10px] uppercase tracking-[0.4em] font-bold text-terracotta hover:text-offblack transition-colors"
+              >
+                Clear Search
+              </button>
+            )}
+            {!searchQuery && (
+              <motion.button 
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                viewport={{ once: true }}
+                className="text-[10px] uppercase tracking-[0.4em] font-bold border-b-2 border-offblack pb-2 hover:text-terracotta hover:border-terracotta transition-all"
+              >
+                Browse All
+              </motion.button>
+            )}
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-24">
-            {PRODUCTS.map(product => (
-              <ProductCard 
-                key={product.id} 
-                product={product} 
-                onAdd={addToCart} 
-              />
-            ))}
-          </div>
+          {filteredProducts.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-24">
+              {filteredProducts.map(product => (
+                <ProductCard 
+                  key={product.id} 
+                  product={product} 
+                  onAdd={addToCart} 
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="py-20 text-center">
+              <p className="text-xl font-serif italic text-offblack/40 mb-4">No objects found matching your search.</p>
+              <button 
+                onClick={() => setSearchQuery('')}
+                className="text-xs uppercase tracking-widest font-bold border-b border-offblack pb-1 hover:text-terracotta transition-colors"
+              >
+                View all products
+              </button>
+            </div>
+          )}
         </section>
 
         <ArtistExperience onReadStory={() => setSelectedStory(STORIES[0])} />
@@ -683,6 +783,13 @@ export default function App() {
         story={selectedStory} 
         onClose={() => setSelectedStory(null)} 
         onNext={nextStory}
+      />
+
+      <SearchOverlay 
+        isOpen={searchOpen} 
+        onClose={() => setSearchOpen(false)} 
+        searchQuery={searchQuery} 
+        onSearchChange={setSearchQuery} 
       />
 
       <style dangerouslySetInnerHTML={{ __html: `
